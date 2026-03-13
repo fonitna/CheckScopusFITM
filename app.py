@@ -11,7 +11,7 @@ st.title('Scopus Publication Checker')
 
 st.write("### Flexible Data Input and Scopus Indexing Check")
 st.write("You can either enter a Google Scholar ID to fetch your publications directly or upload your `jittimon_research.csv` file.")
-st.write("Then, upload the Scopus Sources List Excel file (`ext_list_Feb_2026.xlsx`) to check indexing status.")
+st.write("The Scopus Sources List (`ext_list_Feb_2026.xlsx`) will be loaded directly from the application's directory.")
 
 # Helper function to clean strings for matching
 def clean_string_for_exact_match(text):
@@ -50,9 +50,9 @@ def fetch_google_scholar_data(author_id):
         return None
 
 @st.cache_data(show_spinner="Loading Scopus data...")
-def load_scopus_file(uploaded_file):
+def load_scopus_file(filepath):
     try:
-        scopus_sources_df = pd.read_excel(uploaded_file)
+        scopus_sources_df = pd.read_excel(filepath)
         # Preprocessing scopus_sources_df (Scopus data)
         scopus_sources_df['Source_Title_cleaned_for_exact'] = scopus_sources_df['Source Title'].apply(clean_string_for_exact_match)
 
@@ -74,7 +74,7 @@ def load_scopus_file(uploaded_file):
 
         return scopus_sources_df
     except Exception as e:
-        st.error(f"Error loading Scopus Excel file: {e}")
+        st.error(f"Error loading Scopus Excel file from {filepath}: {e}")
         return None
 
 # --- Research Data Input --- #
@@ -115,25 +115,18 @@ else: # input_method == "Upload CSV"
 
 # --- Scopus Data Input --- #
 st.markdown("--- ")
-st.write("### Upload Scopus Sources List")
+st.write("### Scopus Sources List")
 
 if 'scopus_sources_df' not in st.session_state:
     st.session_state.scopus_sources_df = None
 
-uploaded_scopus_file = st.file_uploader("Upload Scopus Sources List Excel (ext_list_Feb_2026.xlsx)", type=['xlsx'])
-
-if uploaded_scopus_file is not None and st.session_state.scopus_sources_df is None:
-    st.session_state.scopus_sources_df = load_scopus_file(uploaded_scopus_file)
+# Load the Scopus file directly if not already loaded
+if st.session_state.scopus_sources_df is None:
+    st.session_state.scopus_sources_df = load_scopus_file('ext_list_Feb_2026.xlsx')
     if st.session_state.scopus_sources_df is not None:
-        st.success("Scopus Sources List loaded successfully!")
-
-elif uploaded_scopus_file is None and st.session_state.scopus_sources_df is not None:
-    st.info("Scopus Sources List already loaded from a previous upload.")
-elif uploaded_scopus_file is not None and st.session_state.scopus_sources_df is not None:
-    # If a new file is uploaded while one is already in session_state, update it.
-    st.session_state.scopus_sources_df = load_scopus_file(uploaded_scopus_file)
-    if st.session_state.scopus_sources_df is not None:
-        st.success("Scopus Sources List updated successfully with new upload!")
+        st.success("Scopus Sources List loaded directly from directory!")
+else:
+    st.info("Scopus Sources List already loaded.")
 
 scopus_sources_df = st.session_state.scopus_sources_df
 
@@ -205,5 +198,4 @@ else:
     if df_research is None:
         st.info("Please provide your research data (Google Scholar ID or CSV upload) to proceed.")
     if scopus_sources_df is None:
-        st.info("Please upload the Scopus Sources List Excel file to proceed.")
-
+        st.info("Scopus Sources List could not be loaded. Please ensure 'ext_list_Feb_2026.xlsx' is in the application's directory.")
